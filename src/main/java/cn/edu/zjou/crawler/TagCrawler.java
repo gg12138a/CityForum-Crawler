@@ -1,6 +1,9 @@
 package cn.edu.zjou.crawler;
 
+import cn.edu.zjou.config.CrawlerConfig;
+import cn.edu.zjou.mapper.DeptMapper;
 import cn.edu.zjou.mapper.TypeMapper;
+import cn.edu.zjou.po.Dept;
 import cn.edu.zjou.po.Type;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import org.seimicrawler.xpath.JXDocument;
@@ -18,15 +21,20 @@ public class TagCrawler {
 
     private Logger logger = LoggerFactory.getLogger(TagCrawler.class);
 
-    private TypeMapper typeMapper;
-    @Autowired
-    public TagCrawler(TypeMapper typeMapper) {
+    private JXDocument jxDocument;
+    private final TypeMapper typeMapper;
+    private final DeptMapper deptMapper;
+
+    public TagCrawler(TypeMapper typeMapper, DeptMapper deptMapper, CrawlerConfig crawlerConfig) {
         this.typeMapper = typeMapper;
+        this.deptMapper = deptMapper;
+
+        this.jxDocument = JXDocument.createByUrl(crawlerConfig.getStartUrl());
     }
 
-    public void updateTypes(String url) {
-        JXDocument jxd = JXDocument.createByUrl(url);
-        JXNode ul = jxd.selNOne("""
+
+    public void updateTypes() {
+        JXNode ul = jxDocument.selNOne("""
                 //*[@id="thread_types"]""");
 
         List<JXNode> aOfTypes = ul.sel(".//li[not(@id)]//a");
@@ -38,4 +46,20 @@ public class TagCrawler {
 
         typeMapper.saveAllWithUniqueTypeName(types);
     }
+
+    public void updateDepts() {
+        JXNode ul = jxDocument.selN("""
+                //*[@id="thread_types"]""").get(1);
+
+        List<JXNode> aOfDepts = ul.sel(".//li//a");
+
+        List<Dept> depts = new ArrayList<>();
+        for (var node : aOfDepts) {
+            depts.add(new Dept(node.asElement().ownText()));
+        }
+
+        deptMapper.saveAllWithUniqueDeptName(depts);
+    }
+
+
 }

@@ -35,11 +35,14 @@ public class CrawlerStarter {
     }
 
     /**
-     * 1. 更新MySQL的t_tag表
+     * 1. 更新MySQL的t_type表和t_dept表
      * 2.
      */
     public void start() {
-        tagCrawler.updateTypes(crawlerConfig.getStartUrl());
+        tagCrawler.updateTypes();
+        tagCrawler.updateDepts();
+
+        // TODO 处理 Post 和 Message
 
     }
 }

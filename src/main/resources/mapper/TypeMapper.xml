@@ -3,12 +3,7 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.edu.zjou.mapper.TypeMapper">
-    
-    <resultMap id="BaseResultMap" type="cn.edu.zjou.po.Type">
-        <id property="typeId" column="type_id" jdbcType="INTEGER"/>
-        <result property="typeName" column="type_name" jdbcType="VARCHAR"/>
-    </resultMap>
-    
+
     <insert id="saveAllWithUniqueTypeName">
         insert into t_type(type_id,type_name)
         values
