@@ -1,11 +1,9 @@
 package cn.edu.zjou.crawler;
 
+import cn.edu.zjou.enums.PostStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @SpringBootTest
 public class PostCrawlerTest {
@@ -15,12 +13,18 @@ public class PostCrawlerTest {
 
     @Test
     public void testGetPagesCount() {
-        System.out.println(postCrawler.getPagesCount());
+        System.out.println(postCrawler.getAllPagesCount());
     }
 
     @Test
     public void testProcessPage() {
         postCrawler.processPage(1);
+    }
+
+    @Test
+    public void testGetPostStatusByName() {
+        System.out.println(PostStatus.PostStatusBuilder.getPostStatusByName("123"));
+        System.out.println(PostStatus.PostStatusBuilder.getPostStatusByName(null));
     }
 
 }

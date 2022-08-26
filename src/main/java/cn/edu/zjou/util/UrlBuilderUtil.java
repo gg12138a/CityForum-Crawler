@@ -2,6 +2,9 @@ package cn.edu.zjou.util;
 
 import org.springframework.stereotype.Component;
 
+/**
+ * @author G_xy
+ */
 @Component
 public class UrlBuilderUtil {
 
@@ -11,5 +14,9 @@ public class UrlBuilderUtil {
         }
 
         return "http://bbs.zhoushan.cn/forum-143-" + page + ".html";
+    }
+
+    public String getUserBaseUrlByUid(int uid) {
+        return "http://bbs.zhoushan.cn/space-uid-" + uid + ".html";
     }
 }
