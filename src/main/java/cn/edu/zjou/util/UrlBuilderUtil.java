@@ -16,7 +16,11 @@ public class UrlBuilderUtil {
         return "http://bbs.zhoushan.cn/forum-143-" + page + ".html";
     }
 
-    public String getUserBaseUrlByUid(int uid) {
+    public String getPostDetailPageUrl(int postId, int page) {
+        return "http://bbs.zhoushan.cn/thread-" + postId + "-" + page + "-1.html";
+    }
+
+    public String getUserSpaceUrlByUid(int uid) {
         return "http://bbs.zhoushan.cn/space-uid-" + uid + ".html";
     }
 }

@@ -39,12 +39,15 @@ public class PostCrawler {
 
     private final PostServiceImpl postService;
 
-    public PostCrawler(CrawlerConfig crawlerConfig, UrlBuilderUtil urlBuilderUtil, DeptConverter deptConverter, TypeConverter typeConverter, PostMapper postMapper, PostServiceImpl postService) {
+    private final MessageCrawler messageCrawler;
+
+    public PostCrawler(CrawlerConfig crawlerConfig, UrlBuilderUtil urlBuilderUtil, DeptConverter deptConverter, TypeConverter typeConverter, PostMapper postMapper, PostServiceImpl postService, MessageCrawler messageCrawler) {
         this.crawlerConfig = crawlerConfig;
         this.urlBuilderUtil = urlBuilderUtil;
         this.deptConverter = deptConverter;
         this.typeConverter = typeConverter;
         this.postService = postService;
+        this.messageCrawler = messageCrawler;
     }
 
     public void doCrawl() {
@@ -58,6 +61,7 @@ public class PostCrawler {
      */
 
         this.processPage(1);
+        this.processPage(2);
     }
 
     /**
@@ -75,7 +79,7 @@ public class PostCrawler {
             String group = matcher.group();
             return Integer.parseInt(group);
         } else {
-            throw new RuntimeException("正则匹配失败");
+            throw new RuntimeException("获取总页数时正则匹配失败");
         }
     }
 
@@ -94,7 +98,7 @@ public class PostCrawler {
 
         for (var tbody : tbodys) {
             int bbsId = this.getBBSId(tbody);
-            logger.info("当前正在爬取：第{}页的bbsID为{}的Post", page, bbsId);
+
             Type type = this.getType(tbody);
             Dept dept = this.getDept(tbody);
             String title = this.getTitle(tbody);
@@ -103,10 +107,12 @@ public class PostCrawler {
             int replyCount = this.getReplyCount(tbody);
             int checkCount = this.getCheckCount(tbody);
             PostStatus postStatus = this.getPostStatus(tbody);
-            postService.saveOrUpdate(new Post(bbsId, type.getTypeId(), dept.getDeptId(), title, publishUserId, publishDate, replyCount, checkCount,postStatus));
+            postService.saveOrUpdate(new Post(bbsId, type.getTypeId(), dept.getDeptId(), title, publishUserId, publishDate, replyCount, checkCount, postStatus));
             // end,仅处理了Post条目信息
 
-
+            logger.info("""
+                post:第{}页,其标题为：{}""", page, title);
+            messageCrawler.doCrawl(bbsId);
         }
     }
 

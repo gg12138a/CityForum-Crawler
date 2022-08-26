@@ -42,7 +42,6 @@ public class CrawlerStarter {
         tagCrawler.updateTypes();
         tagCrawler.updateDepts();
 
-        // TODO 处理 Post 和 Message
-
+        postCrawler.doCrawl();
     }
 }

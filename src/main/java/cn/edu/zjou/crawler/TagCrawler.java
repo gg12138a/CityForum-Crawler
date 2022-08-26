@@ -5,12 +5,10 @@ import cn.edu.zjou.mapper.DeptMapper;
 import cn.edu.zjou.mapper.TypeMapper;
 import cn.edu.zjou.po.Dept;
 import cn.edu.zjou.po.Type;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import org.seimicrawler.xpath.JXDocument;
 import org.seimicrawler.xpath.JXNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
