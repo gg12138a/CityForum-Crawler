@@ -18,4 +18,8 @@ public class User {
         this.userId = userId;
         this.username = username;
     }
+
+    public User(Integer userId) {
+        this.userId = userId;
+    }
 }

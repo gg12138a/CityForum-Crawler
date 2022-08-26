@@ -1,14 +1,18 @@
 package cn.edu.zjou.crawler;
 
+import cn.edu.zjou.enums.MsgType;
+import cn.edu.zjou.event.MsgEvent;
 import cn.edu.zjou.po.Msg;
 import cn.edu.zjou.service.impl.MsgServiceImpl;
 import cn.edu.zjou.service.impl.UserServiceImpl;
-import cn.edu.zjou.util.AsyncPageDownloader;
 import cn.edu.zjou.util.UrlBuilderUtil;
 import org.seimicrawler.xpath.JXDocument;
 import org.seimicrawler.xpath.JXNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -17,7 +21,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,10 +31,10 @@ import java.util.regex.Pattern;
 public class MessageCrawler {
 
 
-    private final PageProcessor pageProcessor;
+    private final MsgProcessor msgProcessor;
 
-    public MessageCrawler(PageProcessor pageProcessor) {
-        this.pageProcessor = pageProcessor;
+    public MessageCrawler(MsgProcessor msgProcessor) {
+        this.msgProcessor = msgProcessor;
     }
 
     public void doCrawl(int postId) {
@@ -43,29 +46,27 @@ public class MessageCrawler {
         }
 */
 
-        pageProcessor.processPage(postId, 1);
+        msgProcessor.processPage(postId, 1);
     }
-
 
     /**
      * 负责处理某一页面下的所有Message
      */
     @Component
-    static class PageProcessor {
+    static class MsgProcessor {
 
-        private Logger logger = LoggerFactory.getLogger(PageProcessor.class);
-
+        private final Logger logger = LoggerFactory.getLogger(MsgProcessor.class);
         private final UrlBuilderUtil urlBuilderUtil;
-        private final AsyncPageDownloader downloader;
-
         private final MsgServiceImpl msgService;
-        private final UserServiceImpl userService;
+        private final ApplicationEventPublisher publisher;
+        private final UserCrawler userCrawler;
 
-        public PageProcessor(UrlBuilderUtil urlBuilderUtil, AsyncPageDownloader downloader, MsgServiceImpl msgService, UserServiceImpl userService) {
+
+        public MsgProcessor(UrlBuilderUtil urlBuilderUtil, MsgServiceImpl msgService, UserServiceImpl userService, ApplicationEventPublisher publisher, UserCrawler userCrawler) {
             this.urlBuilderUtil = urlBuilderUtil;
-            this.downloader = downloader;
             this.msgService = msgService;
-            this.userService = userService;
+            this.publisher = publisher;
+            this.userCrawler = userCrawler;
         }
 
         public int getAllPagesCount(int postId) {
@@ -90,62 +91,55 @@ public class MessageCrawler {
             }
         }
 
-        //        public int getAllPagesCountAsync(int postId) {
-//            String detailPageUrl = urlBuilderUtil.getPostDetailPageUrl(postId, 1);
-//            CompletableFuture<JXDocument> jxdFuture = downloader.downloadPage(detailPageUrl);
-//
-//            CompletableFuture<Integer> countFuture = jxdFuture.thenApplyAsync(jxd -> {
-//                JXNode spanOfPageCountNode = jxd.selNOne("""
-//                        //*[@id="pgt"]/div/div/label/span""");
-//                if (spanOfPageCountNode == null) {
-//                    return 1;
-//                }
-//
-//                String title = spanOfPageCountNode.asElement().attr("title");
-//
-//                Pattern pattern = Pattern.compile("(?<count>\\d+)");
-//                Matcher matcher = pattern.matcher(title);
-//                if (matcher.find()) {
-//                    String group = matcher.group("count");
-//                    return Integer.parseInt(group);
-//                } else {
-//                    throw new RuntimeException("获取总页数时正则匹配失败");
-//                }
-//            });
-//
-//            return countFuture.join();
-//        }
-
-
         /**
-         * 处理posdId帖子的第page页的所有Msg
+         * 处理帖子的第page页的所有Msg
          */
+
         public void processPage(int postId, int page) {
             String detailPageUrl = urlBuilderUtil.getPostDetailPageUrl(postId, page);
 
-            CompletableFuture<JXDocument> jxdFuture = downloader.downloadPageAsync(detailPageUrl);
-            JXDocument jxd = jxdFuture.join();
+            JXDocument jxd = JXDocument.createByUrl(detailPageUrl);
+            publisher.publishEvent(new MsgEvent(this, jxd, postId, page));
+        }
+
+        @EventListener
+        @Async("proxyTaskExecutor")
+        public void onApplicationEvent(MsgEvent event) {
+            JXDocument jxd = event.getJxd();
+            int page = event.getPage();
+            int postId = event.getPostId();
 
             List<JXNode> tableNodes = jxd.selN("""
                     //table[starts-with(@id, "pid") and @class="plhin"]""");
 
             List<Msg> msgs = new ArrayList<>();
 
-            for (var table : tableNodes) {
-                int msgId = this.getMsgId(table);
-                int publishUserId = this.getPublishUserId(table);
-                String content = this.getContent(table);
-                if (!StringUtils.hasText(content)) {// 该用户被封禁
+            for (int i = 0; i < tableNodes.size(); i++) {
+                JXNode table = tableNodes.get(i);
+                Msg msg = this.parseTableNodeToMsg(table, postId, page);
+                if (!StringUtils.hasText(msg.getContent())) {// 该用户被封禁
                     continue;
                 }
-                Date releaseDate = this.getReleaseDate(table);  // end
+                if(i == 0){
+                    msg.setMsgType(MsgType.MAIN);
+                }
+                msgs.add(msg);
 
-                logger.info("Msg:第{}页,其内容为{},发表者uid为{}", page, content, publishUserId);
-
-                msgs.add(new Msg(msgId, publishUserId, postId, content, releaseDate, page));
-                userService.saveOrCrawlUser(publishUserId);
+                userCrawler.processUser(msg.getUserId());
             }
             msgService.saveOrUpdateBatch(msgs);
+        }
+
+        public Msg parseTableNodeToMsg(JXNode table, int postId, int page) {
+            int msgId = this.getMsgId(table);
+            int publishUserId = this.getPublishUserId(table);
+            String content = this.getContent(table);
+            Date releaseDate = this.getReleaseDate(table);  // end
+            MsgType msgType = this.getMsgType(table);
+
+            logger.info("Msg:第{}页,其内容为{},发表者uid为{}", page, content, publishUserId);
+
+            return new Msg(msgId, publishUserId, postId, content, releaseDate, page, msgType);
         }
 
         public int getMsgId(JXNode table) {
@@ -230,6 +224,18 @@ public class MessageCrawler {
             } catch (ParseException e) {
                 throw new RuntimeException(e);
             }
+        }
+
+        public MsgType getMsgType(JXNode table) {
+            JXNode aOfUserNode = table.selOne("""
+                    .//div[@class="authi"]/a""");
+
+            String styleOfUserNode = aOfUserNode.asElement().attr("style");
+            if (StringUtils.hasText(styleOfUserNode) && styleOfUserNode.contains("color: #FF0000")) {
+                return MsgType.OFFICIAL;
+            }
+
+            return MsgType.COMMON;
         }
 
         // TODO? 没有必要的功能

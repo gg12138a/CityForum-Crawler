@@ -1,6 +1,7 @@
 package cn.edu.zjou.po;
 
 
+import cn.edu.zjou.enums.MsgType;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import lombok.Data;
@@ -23,13 +24,15 @@ public class Msg {
     private String content;
     private Date releaseDate;
     private Integer pageNum;
+    private MsgType msgType;
 
-    public Msg(Integer msgId, Integer userId, Integer postId, String content, Date releaseDate, Integer pageNum) {
+    public Msg(Integer msgId, Integer userId, Integer postId, String content, Date releaseDate, Integer pageNum, MsgType msgType) {
         this.msgId = msgId;
         this.userId = userId;
         this.postId = postId;
         this.content = content;
         this.releaseDate = releaseDate;
         this.pageNum = pageNum;
+        this.msgType = msgType;
     }
 }
