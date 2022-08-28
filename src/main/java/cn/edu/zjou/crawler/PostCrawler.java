@@ -58,15 +58,9 @@ public class PostCrawler {
     public void doCrawl() {
         int allPagesCount = this.getAllPagesCount();
 
-    /*
-        TODO
         for (int i = 1; i <= allPagesCount; i++) {
             this.processPage(i);
         }
-     */
-
-        this.processPage(1);
-        this.processPage(2);
     }
 
 
@@ -113,12 +107,18 @@ public class PostCrawler {
                 .//tbody[starts-with(@id, "normalthread")]""");
 
         List<Post> posts = new ArrayList<>();
-        for (var tbody : tbodys) {
-            Post post = postProcessor.parseTbodyNodeToPost(tbody);
-            posts.add(post);
-            logger.info("post:第{}页,其标题为：{}", page, post.getTitle());
+        for (int i = 1; i < tbodys.size(); i++) {
+            JXNode tbody = tbodys.get(i - 1);
 
-            messageCrawler.doCrawl(post.getPostId());
+            try {
+                Post post = postProcessor.parseTbodyNodeToPost(tbody);
+                posts.add(post);
+                logger.info("post:第{}页,其标题为：{}", page, post.getTitle());
+
+                messageCrawler.doCrawl(post.getPostId());
+            } catch (Exception e) {
+                logger.error("解析Post的tbody时出错，第{}页第{}条", page, i, e);
+            }
         }
         postService.saveOrUpdateBatch(posts);
     }
@@ -136,6 +136,7 @@ public class PostCrawler {
         }
 
         public Post parseTbodyNodeToPost(JXNode tbody) {
+
             int bbsId = this.getBBSId(tbody);
 
             Type type = this.getType(tbody);
@@ -183,6 +184,10 @@ public class PostCrawler {
          */
         private Dept getDept(JXNode tbody) {
             JXNode aOfDeptNode = tbody.selOne("./tr/th/em[2]/a");
+            if (aOfDeptNode == null) {
+                int deptId = deptConverter.getDeptId(DeptConverter.UNKNOWN_DEPT_NAME);
+                return new Dept(deptId, DeptConverter.UNKNOWN_DEPT_NAME);
+            }
 
             String deptName = aOfDeptNode.asElement().ownText();
             int deptId = deptConverter.getDeptId(deptName);

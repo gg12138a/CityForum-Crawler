@@ -13,6 +13,8 @@ import java.util.Map;
 public class TypeConverter {
     private final TypeMapper typeMapper;
 
+    public static final String UNKNOWN_TYPE_NAME = "unknown_type";
+
     /**
      * key：typeName
      * value:typeId
@@ -26,12 +28,16 @@ public class TypeConverter {
     @PostConstruct
     public void init() {
         List<Type> types = typeMapper.selectList(null);
-        types.forEach(type -> {
-            map.put(type.getTypeName(), type.getTypeId());
-        });
+        types.forEach(type -> map.put(type.getTypeName(), type.getTypeId()));
     }
 
     public int getTypeId(String typeName) {
-        return map.get(typeName);
+        Integer typeId = map.get(typeName);
+
+        if (typeId == null) {
+            return map.get(TypeConverter.UNKNOWN_TYPE_NAME);
+        }
+
+        return typeId;
     }
 }

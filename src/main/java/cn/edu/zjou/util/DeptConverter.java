@@ -14,6 +14,8 @@ public class DeptConverter {
 
     private final DeptMapper deptMapper;
 
+    public static final String UNKNOWN_DEPT_NAME = "unknown_dept";
+
     /**
      * key：deptName
      * value:deptId
@@ -23,9 +25,7 @@ public class DeptConverter {
     @PostConstruct
     public void init() {
         List<Dept> depts = deptMapper.selectList(null);
-        depts.forEach(dept -> {
-            map.put(dept.getDeptName(), dept.getDeptId());
-        });
+        depts.forEach(dept -> map.put(dept.getDeptName(), dept.getDeptId()));
     }
 
     public DeptConverter(DeptMapper deptMapper) {

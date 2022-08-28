@@ -30,7 +30,6 @@ import java.util.regex.Pattern;
 @Component
 public class MessageCrawler {
 
-
     private final MsgProcessor msgProcessor;
 
     public MessageCrawler(MsgProcessor msgProcessor) {
@@ -38,15 +37,11 @@ public class MessageCrawler {
     }
 
     public void doCrawl(int postId) {
-/*
-        TODO
-        int allPagesCount = pageProcessor.getAllPagesCount(postId);
-        for (int page = 1; page <= allPagesCount; page++) {
-            pageProcessor.processPage(postId, page);
-        }
-*/
 
-        msgProcessor.processPage(postId, 1);
+        int allPagesCount = msgProcessor.getAllPagesCount(postId);
+        for (int page = 1; page <= allPagesCount; page++) {
+            msgProcessor.processPage(postId, page);
+        }
     }
 
     /**
@@ -62,7 +57,7 @@ public class MessageCrawler {
         private final UserCrawler userCrawler;
 
 
-        public MsgProcessor(UrlBuilderUtil urlBuilderUtil, MsgServiceImpl msgService, UserServiceImpl userService, ApplicationEventPublisher publisher, UserCrawler userCrawler) {
+        public MsgProcessor(UrlBuilderUtil urlBuilderUtil, MsgServiceImpl msgService, ApplicationEventPublisher publisher, UserCrawler userCrawler) {
             this.urlBuilderUtil = urlBuilderUtil;
             this.msgService = msgService;
             this.publisher = publisher;
@@ -94,7 +89,7 @@ public class MessageCrawler {
         /**
          * 处理帖子的第page页的所有Msg
          */
-
+        @Async("proxyTaskExecutor")
         public void processPage(int postId, int page) {
             String detailPageUrl = urlBuilderUtil.getPostDetailPageUrl(postId, page);
 
@@ -114,18 +109,23 @@ public class MessageCrawler {
 
             List<Msg> msgs = new ArrayList<>();
 
-            for (int i = 0; i < tableNodes.size(); i++) {
-                JXNode table = tableNodes.get(i);
-                Msg msg = this.parseTableNodeToMsg(table, postId, page);
-                if (!StringUtils.hasText(msg.getContent())) {// 该用户被封禁
-                    continue;
-                }
-                if(i == 0){
-                    msg.setMsgType(MsgType.MAIN);
-                }
-                msgs.add(msg);
+            for (int i = 1; i <= tableNodes.size(); i++) {
+                try {
+                    JXNode table = tableNodes.get(i - 1);
+                    Msg msg = this.parseTableNodeToMsg(table, postId, page);
+                    if (!StringUtils.hasText(msg.getContent())) {// 该用户被封禁
+                        continue;
+                    }
+                    if (i == 1) {
+                        msg.setMsgType(MsgType.MAIN);
+                    }
+                    msgs.add(msg);
 
-                userCrawler.processUser(msg.getUserId());
+                    userCrawler.processUser(msg.getUserId());
+                } catch (Exception e) {
+                    logger.error("解析Msg的table出错，postId为{},第{}页第{}条", postId, page, i, e);
+                }
+
             }
             msgService.saveOrUpdateBatch(msgs);
         }
@@ -137,7 +137,7 @@ public class MessageCrawler {
             Date releaseDate = this.getReleaseDate(table);  // end
             MsgType msgType = this.getMsgType(table);
 
-            logger.info("Msg:第{}页,其内容为{},发表者uid为{}", page, content, publishUserId);
+            logger.info("Msg:第{}页,其内容为:{},postId为:{}", page, content, postId);
 
             return new Msg(msgId, publishUserId, postId, content, releaseDate, page, msgType);
         }

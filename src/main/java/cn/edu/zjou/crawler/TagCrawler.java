@@ -5,6 +5,8 @@ import cn.edu.zjou.mapper.DeptMapper;
 import cn.edu.zjou.mapper.TypeMapper;
 import cn.edu.zjou.po.Dept;
 import cn.edu.zjou.po.Type;
+import cn.edu.zjou.util.DeptConverter;
+import cn.edu.zjou.util.TypeConverter;
 import org.seimicrawler.xpath.JXDocument;
 import org.seimicrawler.xpath.JXNode;
 import org.slf4j.Logger;
@@ -17,9 +19,9 @@ import java.util.List;
 @Component
 public class TagCrawler {
 
-    private Logger logger = LoggerFactory.getLogger(TagCrawler.class);
+    private final Logger logger = LoggerFactory.getLogger(TagCrawler.class);
 
-    private JXDocument jxDocument;
+    private final JXDocument jxDocument;
     private final TypeMapper typeMapper;
     private final DeptMapper deptMapper;
 
@@ -41,6 +43,7 @@ public class TagCrawler {
         for (var node : aOfTypes) {
             types.add(new Type(node.asElement().ownText()));
         }
+        types.add(new Type(TypeConverter.UNKNOWN_TYPE_NAME));
 
         typeMapper.saveAllWithUniqueTypeName(types);
     }
@@ -55,8 +58,9 @@ public class TagCrawler {
         for (var node : aOfDepts) {
             depts.add(new Dept(node.asElement().ownText()));
         }
-
+        depts.add(new Dept(DeptConverter.UNKNOWN_DEPT_NAME));
         deptMapper.saveAllWithUniqueDeptName(depts);
+
     }
 
 

@@ -39,6 +39,7 @@ public class UserCrawler{
         }
     }
 
+    @Async("proxyTaskExecutor")
     public void crawlAndSaveUser(int userId) {
         logger.info("user:其uid为{}", userId);
 
