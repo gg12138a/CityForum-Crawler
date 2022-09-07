@@ -127,7 +127,11 @@ public class MessageCrawler {
                 }
 
             }
-            msgService.saveOrUpdateBatch(msgs);
+
+//            msgService.saveOrUpdateBatch(msgs);
+            for (var msg : msgs) {
+                msgService.saveOrUpdate(msg);
+            }
         }
 
         public Msg parseTableNodeToMsg(JXNode table, int postId, int page) {

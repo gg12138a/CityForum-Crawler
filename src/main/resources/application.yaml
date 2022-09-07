@@ -26,6 +26,7 @@ mybatis-plus:
       id-type: ASSIGN_ID
   configuration:
     map-underscore-to-camel-case: true
+    default-enum-type-handler: com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler
 #    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
 

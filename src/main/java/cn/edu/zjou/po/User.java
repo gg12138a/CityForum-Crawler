@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 public class User {
-    @TableId(type = IdType.NONE)
+    @TableId(type = IdType.INPUT)
     private Integer userId;
 
     private String username;
