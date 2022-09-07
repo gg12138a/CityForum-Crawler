@@ -14,7 +14,7 @@ public class DeptConverter {
 
     private final DeptMapper deptMapper;
 
-    public static final String UNKNOWN_DEPT_NAME = "unknown_dept";
+    public static final String UNKNOWN_DEPT_NAME = "未指定部门";
 
     /**
      * key：deptName

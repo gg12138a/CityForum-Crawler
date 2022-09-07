@@ -13,7 +13,7 @@ import java.util.Map;
 public class TypeConverter {
     private final TypeMapper typeMapper;
 
-    public static final String UNKNOWN_TYPE_NAME = "unknown_type";
+    public static final String UNKNOWN_TYPE_NAME = "未指定类别";
 
     /**
      * key：typeName
